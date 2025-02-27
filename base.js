@@ -96,7 +96,7 @@ javascript:(function(){
                         } catch (e) {
                             console.error('Erreur lors du remplacement:', e);
                         }
-                    }, 400); // Doublé de 200 à 400
+                    }, 200);
                 } catch (e) {
                     console.log('Impossible de cliquer sur l\'élément, tentative de modification directe');
                     element.textContent = textReplacements[originalText];
@@ -121,7 +121,7 @@ javascript:(function(){
                         } catch (e) {
                             console.error('Erreur lors du remplacement:', e);
                         }
-                    }, 400); // Doublé de 200 à 400
+                    }, 200);
                 } catch (e) {
                     console.log('Impossible de cliquer sur l\'élément, tentative de modification directe');
                     element.textContent = dateReplacements[originalText];
@@ -172,113 +172,83 @@ javascript:(function(){
             return false;
         }
     }
-    
-    // Fonction améliorée pour cliquer sur le bouton "Télécharger"
-    function clickDownloadButton() {
-        console.log('Tentative de clic sur le bouton "Télécharger"...');
+
+    // Fonction pour extraire et ouvrir le lien de téléchargement dans un nouvel onglet
+    function extractAndOpenDownloadLink() {
+        console.log('Recherche du lien de téléchargement...');
         
-        // Attendre que le bouton de téléchargement soit visible et cliquable
-        let attempts = 0;
-        const maxAttempts = 10;
+        // Créer un élément div pour afficher le statut (feedback visuel)
+        const statusDiv = document.createElement('div');
+        statusDiv.style.position = 'fixed';
+        statusDiv.style.top = '10px';
+        statusDiv.style.right = '10px';
+        statusDiv.style.padding = '10px';
+        statusDiv.style.background = 'rgba(0, 0, 0, 0.8)';
+        statusDiv.style.color = 'white';
+        statusDiv.style.borderRadius = '5px';
+        statusDiv.style.zIndex = '9999';
+        statusDiv.style.fontSize = '14px';
+        statusDiv.textContent = 'Recherche du lien de téléchargement...';
+        document.body.appendChild(statusDiv);
         
-        function tryClickDownload() {
-            attempts++;
-            console.log(`Tentative ${attempts}/${maxAttempts} de trouver le bouton de téléchargement...`);
+        // Rechercher le lien de téléchargement
+        const downloadButton = document.getElementById('download-btn') || 
+                              document.querySelector('a[download][id="download-btn"]') ||
+                              document.querySelector('a.btn[download]') ||
+                              document.querySelector('a[data-original-title="Download files"]') ||
+                              Array.from(document.querySelectorAll('a')).find(a => 
+                                a.textContent.includes('Télécharger') && a.href.includes('download')
+                              );
+        
+        if (downloadButton && downloadButton.href) {
+            const downloadUrl = downloadButton.href;
             
-            // Méthode 1: Par ID
-            let downloadButton = document.getElementById('download-btn');
+            // Afficher le lien trouvé
+            console.log('Lien de téléchargement trouvé:', downloadUrl);
+            statusDiv.innerHTML = `Lien trouvé!<br>Ouverture dans un nouvel onglet...<br><small>${downloadUrl}</small>`;
+            statusDiv.style.background = 'rgba(0, 128, 0, 0.8)';
             
-            // Méthode 2: Par attribut download et texte
-            if (!downloadButton) {
-                const links = document.querySelectorAll('a[download]');
-                for (const link of links) {
-                    if (link.textContent.includes('Télécharger') || link.textContent.includes('Download')) {
-                        downloadButton = link;
-                        break;
-                    }
-                }
-            }
+            // Copier le lien dans le presse-papier
+            navigator.clipboard.writeText(downloadUrl).then(() => {
+                console.log('Lien copié dans le presse-papier');
+                statusDiv.innerHTML += '<br><small>Lien copié dans le presse-papier</small>';
+            }).catch(err => {
+                console.error('Impossible de copier le lien:', err);
+            });
             
-            // Méthode 3: Par classe et texte
-            if (!downloadButton) {
-                const links = document.querySelectorAll('a.btn');
-                for (const link of links) {
-                    if (link.textContent.includes('Télécharger') || link.textContent.includes('Download')) {
-                        downloadButton = link;
-                        break;
-                    }
-                }
-            }
+            // Ouvrir le lien dans un nouvel onglet
+            window.open(downloadUrl, '_blank');
             
-            // Méthode 4: Par icône
-            if (!downloadButton) {
-                const icons = document.querySelectorAll('i.fa-arrow-to-bottom, i.fal.fa-arrow-to-bottom');
-                for (const icon of icons) {
-                    if (icon.parentNode && icon.parentNode.tagName === 'A') {
-                        downloadButton = icon.parentNode;
-                        break;
-                    }
-                }
-            }
+            // Supprimer le div de statut après quelques secondes
+            setTimeout(() => {
+                statusDiv.remove();
+            }, 5000);
             
-            // Méthode 5: Recherche plus générique par texte
-            if (!downloadButton) {
-                const allLinks = document.querySelectorAll('a');
-                for (const link of allLinks) {
-                    if (link.textContent.includes('Télécharger') || 
-                        link.textContent.includes('Download') ||
-                        link.title.includes('Download') ||
-                        link.getAttribute('data-original-title')?.includes('Download')) {
-                        downloadButton = link;
-                        break;
-                    }
-                }
-            }
+            return true;
+        } else {
+            console.error('Lien de téléchargement non trouvé!');
+            statusDiv.textContent = 'Lien de téléchargement non trouvé!';
+            statusDiv.style.background = 'rgba(255, 0, 0, 0.8)';
             
-            if (downloadButton) {
-                console.log('Bouton "Télécharger" trouvé !', downloadButton);
-                console.log('Attributs du bouton:', {
-                    id: downloadButton.id,
-                    href: downloadButton.href,
-                    text: downloadButton.textContent.trim()
+            // Afficher tous les liens pour le débogage
+            console.log('Liste de tous les liens sur la page:');
+            document.querySelectorAll('a').forEach((link, index) => {
+                console.log(`Lien ${index}:`, {
+                    text: link.textContent.trim(),
+                    href: link.href,
+                    id: link.id,
+                    class: link.className,
+                    attributes: Array.from(link.attributes).map(attr => `${attr.name}="${attr.value}"`).join(', ')
                 });
-                
-                try {
-                    // Option 1: Navigation directe
-                    if (downloadButton.href) {
-                        console.log('Navigation vers:', downloadButton.href);
-                        window.location.href = downloadButton.href;
-                    }
-                    
-                    // Option 2: Clic simulé
-                    console.log('Tentative de clic sur le bouton de téléchargement');
-                    downloadButton.click();
-                    
-                    return true;
-                } catch (e) {
-                    console.error('Erreur lors du clic sur le bouton de téléchargement:', e);
-                }
-            } else if (attempts < maxAttempts) {
-                // Réessayer après un délai doublé
-                setTimeout(tryClickDownload, 2000); // Doublé de 1000 à 2000
-            } else {
-                console.error('Bouton de téléchargement non trouvé après plusieurs tentatives.');
-                
-                // Dernier recours: afficher tous les liens de la page pour le débogage
-                console.log('Liste de tous les liens sur la page:');
-                document.querySelectorAll('a').forEach((link, index) => {
-                    console.log(`Lien ${index}:`, {
-                        text: link.textContent.trim(),
-                        href: link.href,
-                        id: link.id,
-                        class: link.className
-                    });
-                });
-            }
+            });
+            
+            // Supprimer le div de statut après quelques secondes
+            setTimeout(() => {
+                statusDiv.remove();
+            }, 5000);
+            
+            return false;
         }
-        
-        // Démarrer la séquence de tentatives
-        tryClickDownload();
     }
     
     // Fonction de vérification de l'URL pour déterminer l'étape
@@ -287,10 +257,10 @@ javascript:(function(){
         console.log('URL actuelle:', currentUrl);
         
         if (currentUrl.includes('/pdf-editor#results')) {
-            // Nous sommes sur la page de résultats, attendre que la page se charge puis cliquer sur Télécharger
+            // Nous sommes sur la page de résultats, attendre que la page se charge puis extraire le lien
             console.log('Page de résultats détectée, attente du chargement complet...');
             // Attendre plus longtemps pour le chargement complet de la page
-            setTimeout(clickDownloadButton, 6000); // Doublé de 3000 à 6000
+            setTimeout(extractAndOpenDownloadLink, 3000);
         } else if (currentUrl.includes('/pdf-editor')) {
             // Nous sommes sur la page d'édition, continuer avec les modifications
             console.log('Page d\'édition détectée');
@@ -310,30 +280,33 @@ javascript:(function(){
                 lastUrl = location.href;
                 
                 // Attendre un certain temps pour que la page se charge complètement
-                setTimeout(checkUrlAndProceed, 4000); // Doublé de 2000 à 4000
+                setTimeout(checkUrlAndProceed, 2000);
                 
-                // Si nous sommes sur la page de résultats, arrêter la vérification
+                // Si nous sommes sur la page de résultats, arrêter la vérification après traitement
                 if (location.href.includes('/pdf-editor#results')) {
-                    clearInterval(urlCheckInterval);
+                    // Continuer la vérification pendant un moment pour s'assurer que la page est complètement chargée
+                    setTimeout(() => {
+                        clearInterval(urlCheckInterval);
+                    }, 10000);
                 }
             }
         }, 500);
         
-        // Arrêter la vérification après un délai doublé
+        // Arrêter la vérification après un certain temps pour éviter les boucles infinies
         setTimeout(() => {
             clearInterval(urlCheckInterval);
-        }, 120000); // Doublé de 60000 à 120000 (2 minutes)
+        }, 60000); // 1 minute maximum
     }
     
     // Exécution du script principal
     
     // Vérifier d'abord si nous sommes déjà sur la page de résultats
     if (window.location.href.includes('/pdf-editor#results')) {
-        console.log('Déjà sur la page de résultats, tentative de téléchargement...');
-        setTimeout(clickDownloadButton, 6000); // Doublé de 3000 à 6000
+        console.log('Déjà sur la page de résultats, tentative d\'extraction du lien...');
+        setTimeout(extractAndOpenDownloadLink, 3000);
     } else {
         // Nous sommes sur la page d'édition, exécuter la séquence complète
-        setTimeout(updateElements, 2000); // Doublé de 1000 à 2000
+        setTimeout(updateElements, 1000);
         setTimeout(() => {
             updateElements();
             setTimeout(() => {
@@ -341,16 +314,16 @@ javascript:(function(){
                     // Configurer la détection de changement d'URL
                     setupUrlChangeDetection();
                     
-                    // Comme fallback, vérifier après un délai fixe doublé
+                    // Comme fallback, vérifier après un délai fixe
                     setTimeout(() => {
                         if (window.location.href.includes('/pdf-editor#results')) {
                             console.log('Page de résultats détectée après délai fixe');
-                            clickDownloadButton();
+                            extractAndOpenDownloadLink();
                         }
-                    }, 20000); // Doublé de 10000 à 20000
+                    }, 10000);
                 }
-            }, 4000); // Doublé de 2000 à 4000
-        }, 6000); // Doublé de 3000 à 6000
+            }, 2000);
+        }, 3000);
     }
     
     console.log('Script d\'automatisation prêt!');
