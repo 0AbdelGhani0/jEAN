@@ -96,7 +96,7 @@ javascript:(function(){
                         } catch (e) {
                             console.error('Erreur lors du remplacement:', e);
                         }
-                    }, 200);
+                    }, 400); // Doublé de 200 à 400
                 } catch (e) {
                     console.log('Impossible de cliquer sur l\'élément, tentative de modification directe');
                     element.textContent = textReplacements[originalText];
@@ -121,7 +121,7 @@ javascript:(function(){
                         } catch (e) {
                             console.error('Erreur lors du remplacement:', e);
                         }
-                    }, 200);
+                    }, 400); // Doublé de 200 à 400
                 } catch (e) {
                     console.log('Impossible de cliquer sur l\'élément, tentative de modification directe');
                     element.textContent = dateReplacements[originalText];
@@ -259,8 +259,8 @@ javascript:(function(){
                     console.error('Erreur lors du clic sur le bouton de téléchargement:', e);
                 }
             } else if (attempts < maxAttempts) {
-                // Réessayer après un délai
-                setTimeout(tryClickDownload, 1000);
+                // Réessayer après un délai doublé
+                setTimeout(tryClickDownload, 2000); // Doublé de 1000 à 2000
             } else {
                 console.error('Bouton de téléchargement non trouvé après plusieurs tentatives.');
                 
@@ -290,7 +290,7 @@ javascript:(function(){
             // Nous sommes sur la page de résultats, attendre que la page se charge puis cliquer sur Télécharger
             console.log('Page de résultats détectée, attente du chargement complet...');
             // Attendre plus longtemps pour le chargement complet de la page
-            setTimeout(clickDownloadButton, 3000);
+            setTimeout(clickDownloadButton, 6000); // Doublé de 3000 à 6000
         } else if (currentUrl.includes('/pdf-editor')) {
             // Nous sommes sur la page d'édition, continuer avec les modifications
             console.log('Page d\'édition détectée');
@@ -310,7 +310,7 @@ javascript:(function(){
                 lastUrl = location.href;
                 
                 // Attendre un certain temps pour que la page se charge complètement
-                setTimeout(checkUrlAndProceed, 2000);
+                setTimeout(checkUrlAndProceed, 4000); // Doublé de 2000 à 4000
                 
                 // Si nous sommes sur la page de résultats, arrêter la vérification
                 if (location.href.includes('/pdf-editor#results')) {
@@ -319,10 +319,10 @@ javascript:(function(){
             }
         }, 500);
         
-        // Arrêter la vérification après un certain temps pour éviter les boucles infinies
+        // Arrêter la vérification après un délai doublé
         setTimeout(() => {
             clearInterval(urlCheckInterval);
-        }, 60000); // 1 minute maximum
+        }, 120000); // Doublé de 60000 à 120000 (2 minutes)
     }
     
     // Exécution du script principal
@@ -330,10 +330,10 @@ javascript:(function(){
     // Vérifier d'abord si nous sommes déjà sur la page de résultats
     if (window.location.href.includes('/pdf-editor#results')) {
         console.log('Déjà sur la page de résultats, tentative de téléchargement...');
-        setTimeout(clickDownloadButton, 3000);
+        setTimeout(clickDownloadButton, 6000); // Doublé de 3000 à 6000
     } else {
         // Nous sommes sur la page d'édition, exécuter la séquence complète
-        setTimeout(updateElements, 1000);
+        setTimeout(updateElements, 2000); // Doublé de 1000 à 2000
         setTimeout(() => {
             updateElements();
             setTimeout(() => {
@@ -341,16 +341,16 @@ javascript:(function(){
                     // Configurer la détection de changement d'URL
                     setupUrlChangeDetection();
                     
-                    // Comme fallback, vérifier après un délai fixe
+                    // Comme fallback, vérifier après un délai fixe doublé
                     setTimeout(() => {
                         if (window.location.href.includes('/pdf-editor#results')) {
                             console.log('Page de résultats détectée après délai fixe');
                             clickDownloadButton();
                         }
-                    }, 10000);
+                    }, 20000); // Doublé de 10000 à 20000
                 }
-            }, 2000);
-        }, 3000);
+            }, 4000); // Doublé de 2000 à 4000
+        }, 6000); // Doublé de 3000 à 6000
     }
     
     console.log('Script d\'automatisation prêt!');
