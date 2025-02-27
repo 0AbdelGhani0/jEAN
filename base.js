@@ -1,33 +1,44 @@
 (function(){
     /**************************************************
-     * 0) SURCHARGER console.error POUR RÉCUPÉRER L'URL
+     * 0) SURVEILLER LES REQUÊTES fetch & XHR
      **************************************************/
-    let linkOpened = false; // éviter de l'ouvrir 2 fois
-    const originalConsoleError = console.error;
-    console.error = function(...args) {
-        // On affiche l'erreur dans la console normalement
-        originalConsoleError(...args);
+    // Pour éviter d’ouvrir 2 fois la même URL
+    let alreadyOpened = false;
+
+    // Sauvegarde des fonctions d’origine
+    const originalXhrOpen = XMLHttpRequest.prototype.open;
+    const originalFetch = window.fetch;
+
+    // Surcharge de XMLHttpRequest.prototype.open
+    XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+        console.log('[Sejda-Hook XHR] method:', method, 'url:', url);
         
-        // On cherche dans chaque argument si on a une URL de type "https://downloads2.sejda.com/api/tasks/.../download"
-        for (const arg of args) {
-            if (typeof arg === 'string' && arg.includes('downloads2.sejda.com/api/tasks/')) {
-                // Tenter d'extraire l'URL complète via une regex
-                const match = arg.match(/(https?:\/\/downloads2\.sejda\.com\/api\/tasks\/[^ ]+)/);
-                if (match && match[1] && !linkOpened) {
-                    linkOpened = true;
-                    const downloadUrl = match[1];
-                    console.log('[Sejda-Auto] URL détectée dans l\'erreur console :', downloadUrl);
-                    
-                    // On ouvre directement l’URL du PDF
-                    window.open(downloadUrl, '_blank');
-                    console.log('[Sejda-Auto] URL ouverte dans un nouvel onglet');
-                }
-            }
+        // Si on voit une requête vers downloads2.sejda.com/api/tasks/.../download
+        if (!alreadyOpened && url.includes('downloads2.sejda.com/api/tasks/') && url.includes('/download/')) {
+            alreadyOpened = true;
+            console.log('[Sejda-Hook XHR] → PDF détecté:', url);
+            window.open(url, '_blank');
         }
+        return originalXhrOpen.apply(this, [method, url, ...rest]);
+    };
+
+    // Surcharge de window.fetch
+    window.fetch = function(resource, config) {
+        console.log('[Sejda-Hook fetch] resource:', resource);
+        
+        // Idem pour fetch
+        if (!alreadyOpened && typeof resource === 'string' 
+            && resource.includes('downloads2.sejda.com/api/tasks/') 
+            && resource.includes('/download/')) {
+            alreadyOpened = true;
+            console.log('[Sejda-Hook fetch] → PDF détecté:', resource);
+            window.open(resource, '_blank');
+        }
+        return originalFetch(resource, config);
     };
 
     /**************************************************
-     * 1) CONFIGURATION ET REMPLACEMENTS DE TEXTE
+     * 1) CONFIGURATION (remplacements de texte)
      **************************************************/
     const productName = "GARBIT COUSCOUS POULE";
     const quantity = Math.floor(Math.random() * 4) + 3; // Nombre aléatoire entre 3 et 6
@@ -40,12 +51,15 @@
         const endDate   = new Date(2025, 2, 20, 23, 59, 59); // 20/03/2025
         const randomTime = startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime());
         const randomDate = new Date(randomTime);
+        // Exclure dimanche
         if (randomDate.getDay() === 0) {
             randomDate.setDate(randomDate.getDate() + 1);
         }
+        // Heure entre 9h et 20h
         randomDate.setHours(9 + Math.floor(Math.random() * 11), Math.floor(Math.random() * 60));
         return randomDate;
     }
+
     const randomDate = generateRandomDate();
     const pad = n => n.toString().padStart(2, '0');
     const date1 = `${pad(randomDate.getDate())}/${pad(randomDate.getMonth() + 1)}/${randomDate.getFullYear()} à ${pad(randomDate.getHours())}h${pad(randomDate.getMinutes())}`;
@@ -84,6 +98,9 @@
     console.log('[Sejda-Auto] Total:', total.toFixed(2));
     console.log('[Sejda-Auto] Date générée:', date1);
 
+    /**************************************************
+     * 2) FONCTIONS DE REMPLACEMENT
+     **************************************************/
     function updateElements() {
         console.log('[Sejda-Auto] updateElements()');
         const elements = document.querySelectorAll('div, span, p');
@@ -172,16 +189,12 @@
     }
 
     /**************************************************
-     * 2) LOGIQUE PRINCIPALE
+     * 3) LOGIQUE PRINCIPALE
      **************************************************/
-    // Si on est déjà sur la page de résultats, Sejda va probablement générer l'erreur
+    // Si on est déjà sur la page de résultats
     if (window.location.href.includes('/pdf-editor#results')) {
-        console.log('[Sejda-Auto] Déjà sur /pdf-editor#results. On attend 3s, puis on laisse Sejda tenter d\'ouvrir le PDF');
-        setTimeout(() => {
-            console.log('[Sejda-Auto] Normalement, Sejda va essayer d\'ouvrir le PDF et générer l\'erreur X-Frame...');
-        }, 3000);
-    }
-    else {
+        console.log('[Sejda-Auto] Déjà sur /pdf-editor#results. On attend que Sejda lance la requête PDF...');
+    } else {
         // Sur la page d'édition
         console.log('[Sejda-Auto] Sur la page d\'édition, on applique la séquence...');
         // 1) Remplacements
@@ -191,9 +204,7 @@
             // 2) Clic sur "Appliquer les changements"
             setTimeout(() => {
                 if (clickApplyButton()) {
-                    console.log('[Sejda-Auto] Attente de la génération du PDF...');
-                    // Normalement, Sejda redirige vers /pdf-editor#results
-                    // qui va essayer d'ouvrir le PDF => Erreur => On chope l'URL via console.error()
+                    console.log('[Sejda-Auto] "Appliquer" cliqué, on attend la requête PDF...');
                 }
             }, 2000);
         }, 3000);
