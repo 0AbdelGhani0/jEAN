@@ -1,45 +1,7 @@
-(function(){
-    /**************************************************
-     * 0) SURVEILLER LES REQUÊTES fetch & XHR
-     **************************************************/
-    // Pour éviter d’ouvrir 2 fois la même URL
-    let alreadyOpened = false;
-
-    // Sauvegarde des fonctions d’origine
-    const originalXhrOpen = XMLHttpRequest.prototype.open;
-    const originalFetch = window.fetch;
-
-    // Surcharge de XMLHttpRequest.prototype.open
-    XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-        console.log('[Sejda-Hook XHR] method:', method, 'url:', url);
-        
-        // Si on voit une requête vers downloads2.sejda.com/api/tasks/.../download
-        if (!alreadyOpened && url.includes('downloads2.sejda.com/api/tasks/') && url.includes('/download/')) {
-            alreadyOpened = true;
-            console.log('[Sejda-Hook XHR] → PDF détecté:', url);
-            window.open(url, '_blank');
-        }
-        return originalXhrOpen.apply(this, [method, url, ...rest]);
-    };
-
-    // Surcharge de window.fetch
-    window.fetch = function(resource, config) {
-        console.log('[Sejda-Hook fetch] resource:', resource);
-        
-        // Idem pour fetch
-        if (!alreadyOpened && typeof resource === 'string' 
-            && resource.includes('downloads2.sejda.com/api/tasks/') 
-            && resource.includes('/download/')) {
-            alreadyOpened = true;
-            console.log('[Sejda-Hook fetch] → PDF détecté:', resource);
-            window.open(resource, '_blank');
-        }
-        return originalFetch(resource, config);
-    };
-
-    /**************************************************
-     * 1) CONFIGURATION (remplacements de texte)
-     **************************************************/
+javascript:(function(){
+    // ===========================
+    //  CONFIGURATION
+    // ===========================
     const productName = "GARBIT COUSCOUS POULE";
     const quantity = Math.floor(Math.random() * 4) + 3; // Nombre aléatoire entre 3 et 6
     const unitPrice = 5.82;
@@ -51,7 +13,8 @@
         const endDate   = new Date(2025, 2, 20, 23, 59, 59); // 20/03/2025
         const randomTime = startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime());
         const randomDate = new Date(randomTime);
-        // Exclure dimanche
+
+        // Exclure les dimanches
         if (randomDate.getDay() === 0) {
             randomDate.setDate(randomDate.getDate() + 1);
         }
@@ -78,6 +41,7 @@
     const date2 = `${date2Parts[0]}.${date2Parts[1]}.${date2Parts[2]} ${date2Parts[3]}:${date2Parts[4]} ${date2Parts[5]} ${date2Parts[6]} ${date2Parts[7]} ${date2Parts[8]}`;
     const random19Digits = Array.from({length: 19}, () => Math.floor(Math.random() * 10)).join('');
 
+    // Remplacements à effectuer
     const textReplacements = {
         '25 CL RED BULL ABR': productName,
         '1 x 1.65': `${quantity} x ${unitPrice}`,
@@ -91,22 +55,23 @@
         '31.12.24 15:47 8122 30 6065 0611': date2
     };
 
-    console.log('[Sejda-Auto] Script d\'automatisation - démarrage');
+    console.log('[Sejda-Auto] Script démarré');
     console.log('[Sejda-Auto] Produit:', productName);
     console.log('[Sejda-Auto] Quantité:', quantity);
     console.log('[Sejda-Auto] Prix unitaire:', unitPrice);
     console.log('[Sejda-Auto] Total:', total.toFixed(2));
     console.log('[Sejda-Auto] Date générée:', date1);
 
-    /**************************************************
-     * 2) FONCTIONS DE REMPLACEMENT
-     **************************************************/
+    // ===========================
+    //  FONCTION: updateElements
+    // ===========================
     function updateElements() {
-        console.log('[Sejda-Auto] updateElements()');
+        console.log('[updateElements] Mise à jour des éléments...');
         const elements = document.querySelectorAll('div, span, p');
+
         elements.forEach(element => {
             const originalText = element.textContent.trim();
-            
+
             // Remplacement normal
             if (textReplacements[originalText]) {
                 try {
@@ -116,13 +81,14 @@
                             const activeElement = document.activeElement;
                             if (activeElement && activeElement.tagName === 'TEXTAREA') {
                                 activeElement.value = textReplacements[originalText];
-                                const event = new Event('input', { bubbles: true });
-                                activeElement.dispatchEvent(event);
+                                activeElement.dispatchEvent(new Event('input', { bubbles: true }));
                             } else {
                                 element.textContent = textReplacements[originalText];
                             }
-                            console.log(`[Sejda-Auto] Remplacement : "${originalText}" → "${textReplacements[originalText]}"`);
-                        } catch(e) { console.error('[Sejda-Auto] Erreur remplacement:', e); }
+                            console.log(`[updateElements] "${originalText}" → "${textReplacements[originalText]}"`);
+                        } catch(e) {
+                            console.error('[updateElements] Erreur remplacement:', e);
+                        }
                     }, 200);
                 } catch(e) {
                     element.textContent = textReplacements[originalText];
@@ -138,13 +104,14 @@
                             const activeElement = document.activeElement;
                             if (activeElement && activeElement.tagName === 'TEXTAREA') {
                                 activeElement.value = dateReplacements[originalText];
-                                const event = new Event('input', { bubbles: true });
-                                activeElement.dispatchEvent(event);
+                                activeElement.dispatchEvent(new Event('input', { bubbles: true }));
                             } else {
                                 element.textContent = dateReplacements[originalText];
                             }
-                            console.log(`[Sejda-Auto] Remplacement date : "${originalText}" → "${dateReplacements[originalText]}"`);
-                        } catch(e) { console.error('[Sejda-Auto] Erreur remplacement date:', e); }
+                            console.log(`[updateElements] DATE: "${originalText}" → "${dateReplacements[originalText]}"`);
+                        } catch(e) {
+                            console.error('[updateElements] Erreur remplacement date:', e);
+                        }
                     }, 200);
                 } catch(e) {
                     element.textContent = dateReplacements[originalText];
@@ -153,61 +120,157 @@
         });
     }
 
+    // ===========================
+    //  FONCTION: clickApplyButton
+    // ===========================
     function clickApplyButton() {
-        console.log('[Sejda-Auto] clickApplyButton()');
+        console.log('[clickApplyButton] Tentative de clic sur "Appliquer les changements"...');
         let applyButton = document.getElementById('save-pdf-btn');
+
+        // Recherche par texte
         if (!applyButton) {
-            const allButtons = document.querySelectorAll('button.btn');
-            for (const btn of allButtons) {
+            const buttons = document.querySelectorAll('button.btn');
+            for (const btn of buttons) {
                 if (btn.textContent.includes('Appliquer les changements')) {
                     applyButton = btn;
                     break;
                 }
             }
         }
+        // Recherche par conteneur
         if (!applyButton) {
             const containers = document.querySelectorAll('.submit-button-container');
             for (const container of containers) {
-                const buttons = container.querySelectorAll('button');
-                for (const btn of buttons) {
-                    if (btn.textContent.includes('Appliquer')) {
-                        applyButton = btn;
+                const btns = container.querySelectorAll('button');
+                for (const b of btns) {
+                    if (b.textContent.includes('Appliquer')) {
+                        applyButton = b;
                         break;
                     }
                 }
                 if (applyButton) break;
             }
         }
+
         if (applyButton) {
-            console.log('[Sejda-Auto] Bouton "Appliquer les changements" trouvé, clic...');
+            console.log('[clickApplyButton] Bouton trouvé, on clique...');
             applyButton.click();
             return true;
         } else {
-            console.error('[Sejda-Auto] Bouton "Appliquer les changements" NON trouvé');
+            console.error('[clickApplyButton] Bouton non trouvé');
             return false;
         }
     }
 
-    /**************************************************
-     * 3) LOGIQUE PRINCIPALE
-     **************************************************/
-    // Si on est déjà sur la page de résultats
-    if (window.location.href.includes('/pdf-editor#results')) {
-        console.log('[Sejda-Auto] Déjà sur /pdf-editor#results. On attend que Sejda lance la requête PDF...');
-    } else {
-        // Sur la page d'édition
-        console.log('[Sejda-Auto] Sur la page d\'édition, on applique la séquence...');
-        // 1) Remplacements
-        setTimeout(updateElements, 1000);
-        setTimeout(() => {
-            updateElements();
-            // 2) Clic sur "Appliquer les changements"
+    // ===========================
+    //  FONCTION: getDownloadLink
+    // ===========================
+    function getDownloadLink() {
+        console.log('[getDownloadLink] Recherche du lien de téléchargement sur la page...');
+        
+        // On tente divers sélecteurs
+        const link = document.getElementById('download-btn') ||
+                     document.querySelector('a[download][id="download-btn"]') ||
+                     document.querySelector('a.btn[download]') ||
+                     document.querySelector('a[data-original-title="Download files"]') ||
+                     Array.from(document.querySelectorAll('a'))
+                          .find(a => a.textContent.includes('Télécharger') && a.href.includes('download'));
+
+        if (link && link.href) {
+            console.log('[getDownloadLink] Lien trouvé :', link.href);
+            return link.href;
+        } else {
+            console.warn('[getDownloadLink] Aucune URL de téléchargement trouvée');
+            return null;
+        }
+    }
+
+    // ===========================
+    //  FONCTION: checkUrlAndLog
+    // ===========================
+    function checkUrlAndLog() {
+        const currentUrl = window.location.href;
+        console.log('[checkUrlAndLog] URL actuelle:', currentUrl);
+
+        // Si on est sur la page de résultats
+        if (currentUrl.includes('/pdf-editor#results')) {
+            console.log('[checkUrlAndLog] On est sur la page de résultats. Tentative de récupération du lien...');
             setTimeout(() => {
-                if (clickApplyButton()) {
-                    console.log('[Sejda-Auto] "Appliquer" cliqué, on attend la requête PDF...');
+                const finalLink = getDownloadLink();
+                if (finalLink) {
+                    console.log('[checkUrlAndLog] *** Nouveau lien de téléchargement ***:', finalLink);
+                } else {
+                    console.log('[checkUrlAndLog] Pas de lien détecté');
                 }
             }, 2000);
-        }, 3000);
+        }
+    }
+
+    // ===========================
+    //  FONCTION: setupUrlWatcher
+    // ===========================
+    function setupUrlWatcher() {
+        let lastUrl = location.href;
+        const intervalId = setInterval(() => {
+            if (location.href !== lastUrl) {
+                console.log(`[setupUrlWatcher] URL changée : ${lastUrl} → ${location.href}`);
+                lastUrl = location.href;
+                setTimeout(checkUrlAndLog, 1500);
+
+                // Si on arrive sur /pdf-editor#results, on peut arrêter après quelques secondes
+                if (location.href.includes('/pdf-editor#results')) {
+                    setTimeout(() => clearInterval(intervalId), 10000);
+                }
+            }
+        }, 500);
+
+        // On arrête après 60s
+        setTimeout(() => clearInterval(intervalId), 60000);
+    }
+
+    // ===========================
+    //  SCÉNARIO PRINCIPAL
+    // ===========================
+    if (window.location.href.includes('/pdf-editor#results')) {
+        // Si on est déjà sur la page de résultats
+        console.log('[Main] Déjà sur la page de résultats. On va essayer de récupérer le lien dans 2s...');
+        setTimeout(() => {
+            const finalLink = getDownloadLink();
+            if (finalLink) {
+                console.log('[Main] *** Nouveau lien de téléchargement ***:', finalLink);
+            } else {
+                console.log('[Main] Pas de lien détecté');
+            }
+        }, 2000);
+    } else {
+        // Page d'édition
+        console.log('[Main] Page d\'édition détectée : on exécute la séquence (updateElements, puis apply, puis surveiller URL)');
+        
+        // 1) Mettre à jour
+        setTimeout(updateElements, 1000);
+        // 2) Re-mise à jour (au cas où)
+        setTimeout(updateElements, 3000);
+        // 3) Clic "Appliquer"
+        setTimeout(() => {
+            if (clickApplyButton()) {
+                // On surveille le changement d'URL
+                setupUrlWatcher();
+                // Fallback : on vérifie manuellement au bout de 10s
+                setTimeout(() => {
+                    if (window.location.href.includes('/pdf-editor#results')) {
+                        console.log('[Fallback] On est sur la page de résultats, on tente de récupérer le lien...');
+                        const finalLink = getDownloadLink();
+                        if (finalLink) {
+                            console.log('[Fallback] *** Nouveau lien de téléchargement ***:', finalLink);
+                        } else {
+                            console.log('[Fallback] Toujours pas de lien détecté');
+                        }
+                    }
+                }, 10000);
+            } else {
+                console.warn('[Main] Impossible de cliquer sur "Appliquer les changements".');
+            }
+        }, 5000);
     }
 
     console.log('[Sejda-Auto] Script prêt !');
