@@ -12,7 +12,6 @@ javascript:(function(){
         const startDate = new Date(2025, 1, 18);
         // 20 mars 2025 à 23:59:59
         const endDate = new Date(2025, 2, 20, 23, 59, 59);
-        
         const randomTime = startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime());
         const randomDate = new Date(randomTime);
         
@@ -24,7 +23,6 @@ javascript:(function(){
         
         // Fixer l'heure entre 9h et 20h
         randomDate.setHours(9 + Math.floor(Math.random() * 11), Math.floor(Math.random() * 60));
-        
         return randomDate;
     }
     
@@ -172,9 +170,9 @@ javascript:(function(){
             return false;
         }
     }
-
-    // Fonction pour extraire et ouvrir le lien de téléchargement dans un nouvel onglet
-    function extractAndOpenDownloadLink() {
+    
+    // Fonction pour extraire et cliquer sur le lien de téléchargement
+    function extractAndClickDownloadLink() {
         console.log('Recherche du lien de téléchargement...');
         
         // Créer un élément div pour afficher le statut (feedback visuel)
@@ -188,10 +186,10 @@ javascript:(function(){
         statusDiv.style.borderRadius = '5px';
         statusDiv.style.zIndex = '9999';
         statusDiv.style.fontSize = '14px';
-        statusDiv.textContent = 'Recherche du lien de téléchargement...';
+        statusDiv.textContent = 'Recherche du bouton de téléchargement...';
         document.body.appendChild(statusDiv);
         
-        // Rechercher le lien de téléchargement
+        // Rechercher le bouton ou lien de téléchargement
         const downloadButton = document.getElementById('download-btn') || 
                               document.querySelector('a[download][id="download-btn"]') ||
                               document.querySelector('a.btn[download]') ||
@@ -200,37 +198,24 @@ javascript:(function(){
                                 a.textContent.includes('Télécharger') && a.href.includes('download')
                               );
         
-        if (downloadButton && downloadButton.href) {
-            const downloadUrl = downloadButton.href;
-            
-            // Afficher le lien trouvé
-            console.log('Lien de téléchargement trouvé:', downloadUrl);
-            statusDiv.innerHTML = `Lien trouvé!<br>Ouverture dans un nouvel onglet...<br><small>${downloadUrl}</small>`;
+        if (downloadButton) {
+            console.log('Bouton de téléchargement trouvé:', downloadButton);
+            statusDiv.innerHTML = `Bouton trouvé!<br>Clic en cours...`;
             statusDiv.style.background = 'rgba(0, 128, 0, 0.8)';
             
-            // Copier le lien dans le presse-papier
-            navigator.clipboard.writeText(downloadUrl).then(() => {
-                console.log('Lien copié dans le presse-papier');
-                statusDiv.innerHTML += '<br><small>Lien copié dans le presse-papier</small>';
-            }).catch(err => {
-                console.error('Impossible de copier le lien:', err);
-            });
+            // Simuler le clic sur le bouton/lien
+            downloadButton.click();
+            console.log('Clic sur le bouton de téléchargement effectué.');
             
-            // Ouvrir le lien dans un nouvel onglet
-            window.open(downloadUrl, '_blank');
-            
-            // Supprimer le div de statut après quelques secondes
             setTimeout(() => {
                 statusDiv.remove();
             }, 5000);
-            
             return true;
         } else {
-            console.error('Lien de téléchargement non trouvé!');
-            statusDiv.textContent = 'Lien de téléchargement non trouvé!';
+            console.error('Bouton de téléchargement non trouvé!');
+            statusDiv.textContent = 'Bouton de téléchargement non trouvé!';
             statusDiv.style.background = 'rgba(255, 0, 0, 0.8)';
             
-            // Afficher tous les liens pour le débogage
             console.log('Liste de tous les liens sur la page:');
             document.querySelectorAll('a').forEach((link, index) => {
                 console.log(`Lien ${index}:`, {
@@ -242,11 +227,9 @@ javascript:(function(){
                 });
             });
             
-            // Supprimer le div de statut après quelques secondes
             setTimeout(() => {
                 statusDiv.remove();
             }, 5000);
-            
             return false;
         }
     }
@@ -257,12 +240,10 @@ javascript:(function(){
         console.log('URL actuelle:', currentUrl);
         
         if (currentUrl.includes('/pdf-editor#results')) {
-            // Nous sommes sur la page de résultats, attendre que la page se charge puis extraire le lien
+            // Nous sommes sur la page de résultats, attendre que la page se charge puis extraire et cliquer sur le lien de téléchargement
             console.log('Page de résultats détectée, attente du chargement complet...');
-            // Attendre plus longtemps pour le chargement complet de la page
-            setTimeout(extractAndOpenDownloadLink, 3000);
+            setTimeout(extractAndClickDownloadLink, 3000);
         } else if (currentUrl.includes('/pdf-editor')) {
-            // Nous sommes sur la page d'édition, continuer avec les modifications
             console.log('Page d\'édition détectée');
         } else {
             console.log('Page non reconnue');
@@ -272,19 +253,12 @@ javascript:(function(){
     // Détection des changements d'URL
     function setupUrlChangeDetection() {
         let lastUrl = location.href;
-        
-        // Vérifier périodiquement si l'URL a changé
         const urlCheckInterval = setInterval(() => {
             if (location.href !== lastUrl) {
                 console.log(`URL changée: ${lastUrl} → ${location.href}`);
                 lastUrl = location.href;
-                
-                // Attendre un certain temps pour que la page se charge complètement
                 setTimeout(checkUrlAndProceed, 2000);
-                
-                // Si nous sommes sur la page de résultats, arrêter la vérification après traitement
                 if (location.href.includes('/pdf-editor#results')) {
-                    // Continuer la vérification pendant un moment pour s'assurer que la page est complètement chargée
                     setTimeout(() => {
                         clearInterval(urlCheckInterval);
                     }, 10000);
@@ -292,33 +266,28 @@ javascript:(function(){
             }
         }, 500);
         
-        // Arrêter la vérification après un certain temps pour éviter les boucles infinies
         setTimeout(() => {
             clearInterval(urlCheckInterval);
-        }, 60000); // 1 minute maximum
+        }, 60000);
     }
     
     // Exécution du script principal
-    
-    // Vérifier d'abord si nous sommes déjà sur la page de résultats
     if (window.location.href.includes('/pdf-editor#results')) {
-        console.log('Déjà sur la page de résultats, tentative d\'extraction du lien...');
-        setTimeout(extractAndOpenDownloadLink, 3000);
+        console.log('Déjà sur la page de résultats, tentative d\'extraction du bouton de téléchargement...');
+        setTimeout(extractAndClickDownloadLink, 3000);
     } else {
-        // Nous sommes sur la page d'édition, exécuter la séquence complète
+        // Sur la page d'édition, appliquer les modifications puis lancer le processus
         setTimeout(updateElements, 1000);
         setTimeout(() => {
             updateElements();
             setTimeout(() => {
                 if (clickApplyButton()) {
-                    // Configurer la détection de changement d'URL
                     setupUrlChangeDetection();
-                    
-                    // Comme fallback, vérifier après un délai fixe
+                    // Fallback : vérifier après un délai fixe
                     setTimeout(() => {
                         if (window.location.href.includes('/pdf-editor#results')) {
                             console.log('Page de résultats détectée après délai fixe');
-                            extractAndOpenDownloadLink();
+                            extractAndClickDownloadLink();
                         }
                     }, 10000);
                 }
