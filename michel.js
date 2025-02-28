@@ -1,4 +1,3 @@
-// Regex améliorée (support downloads1 à downloads9)
 const regex = /https:\/\/downloads[1-9]\.sejda\.com\/api\/tasks\/[a-zA-Z0-9-]+\/download\/[^\s?]+\.pdf\?[^\s]+/g;
 
 // Chercher dans le code source
