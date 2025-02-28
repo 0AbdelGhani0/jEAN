@@ -340,5 +340,5 @@ javascript:(function(){
         }, 3000);
     }
     
-    console.log('Script d\'automatisation prêt!');
+    console.log('Script d\'automatisatioppkijnnujnjnjon prêt!');
 })();
